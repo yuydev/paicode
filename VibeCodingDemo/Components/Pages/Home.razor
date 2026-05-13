@@ -1,0 +1,61 @@
+@page "/"
+@inject VibeCodingOrchestrator Orchestrator
+@inject IJSRuntime JS
+
+<PageTitle>Vibe Coding Demo</PageTitle>
+
+<div class="container">
+    <h1>⚡ Vibe Coding Demo</h1>
+    <p class="subtitle">C# + Blazor Server + Semantic Kernel + Ollama</p>
+
+    <div class="prompt-box">
+        <textarea @bind="_intent" rows="5" placeholder="输入你的编程需求，例如：创建一个 Todo API"></textarea>
+        <button disabled="@_running" @onclick="RunAsync">@(_running ? "执行中..." : "开始执行")</button>
+    </div>
+
+    <div id="logPanel" class="logs">
+        @foreach (var m in _messages)
+        {
+            <div class="msg @m.Type.ToString().ToLowerInvariant()">
+                <div class="meta">[@m.Role] @(m.FilePath is null ? string.Empty : $"({m.FilePath})")</div>
+                <pre>@m.Content</pre>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string _intent = "请根据当前项目补全一个最小可运行的功能";
+    private readonly List<AgentMessage> _messages = [];
+    private bool _running;
+
+    private async Task RunAsync()
+    {
+        if (_running || string.IsNullOrWhiteSpace(_intent))
+        {
+            return;
+        }
+
+        _running = true;
+        _messages.Clear();
+
+        try
+        {
+            var projectPath = AppContext.BaseDirectory;
+            await foreach (var msg in Orchestrator.ExecuteAsync(_intent, projectPath))
+            {
+                _messages.Add(msg);
+                await InvokeAsync(StateHasChanged);
+                await JS.InvokeVoidAsync("vibe.scrollToBottom", "logPanel");
+            }
+        }
+        catch (Exception ex)
+        {
+            _messages.Add(new AgentMessage(AgentRole.System, ex.Message, MsgType.Error));
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+}
