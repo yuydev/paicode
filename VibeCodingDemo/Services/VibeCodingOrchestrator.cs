@@ -88,7 +88,7 @@ public class VibeCodingOrchestrator(Kernel kernel)
         foreach (var (relPath, content) in blocks)
         {
             var fullPath = Path.GetFullPath(Path.Combine(projectPath, relPath));
-            if (!fullPath.StartsWith(Path.GetFullPath(projectPath), StringComparison.OrdinalIgnoreCase))
+            if (!IsWithinProjectRoot(projectPath, fullPath))
             {
                 yield return Msg(AgentRole.Executor, $"❌ 非法路径: {relPath}", MsgType.Error);
                 continue;
@@ -152,4 +152,13 @@ public class VibeCodingOrchestrator(Kernel kernel)
 
     private static string Truncate(string text, int max)
         => text.Length <= max ? text : text[..max] + "\n// ...truncated...";
+
+    private static bool IsWithinProjectRoot(string projectPath, string fullPath)
+    {
+        var root = Path.GetFullPath(projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var candidate = Path.GetFullPath(fullPath);
+        var rootWithSeparator = root + Path.DirectorySeparatorChar;
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return candidate.StartsWith(rootWithSeparator, comparison) || string.Equals(candidate, root, comparison);
+    }
 }
