@@ -27,7 +27,7 @@ public class VibeCodingOrchestrator(Kernel kernel)
 
         yield return Msg(AgentRole.Planner, $"项目结构:\n```\n{tree}\n```");
 
-        var planText = await StreamLLM(
+        var planText = await GenerateLLMTextAsync(
             AgentRole.Planner,
             $"""
              你是 C# 项目规划专家，必须用中文回答。
@@ -57,7 +57,7 @@ public class VibeCodingOrchestrator(Kernel kernel)
 
         yield return Msg(AgentRole.Coder, "💻  开始生成代码...");
 
-        var codeText = await StreamLLM(
+        var codeText = await GenerateLLMTextAsync(
             AgentRole.Coder,
             $"""
              你是 C# 12 代码生成专家，必须用中文注释。
@@ -113,7 +113,7 @@ public class VibeCodingOrchestrator(Kernel kernel)
         yield return Msg(AgentRole.Executor, "🎉 任务执行完成", MsgType.Success);
     }
 
-    private async Task<string> StreamLLM(AgentRole role, string prompt, CancellationToken cancellationToken)
+    private async Task<string> GenerateLLMTextAsync(AgentRole role, string prompt, CancellationToken cancellationToken)
     {
         var chat = kernel.GetRequiredService<IChatCompletionService>();
         var history = new ChatHistory();
